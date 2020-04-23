@@ -98,6 +98,7 @@ type DefaultCommandRunner struct {
 	PendingPlanFinder PendingPlanFinder
 	WorkingDir        WorkingDir
 	DB                *db.BoltDB
+	DeleteLockCommand DeleteLockCommand
 }
 
 // RunAutoplanCommand runs plan when a pull request is opened or updated.
@@ -256,15 +257,14 @@ func (c *DefaultCommandRunner) RunCommentCommand(baseRepo models.Repo, maybeHead
 		return
 	}
 
+	// If this was a successful discard command, delete plans anyway
+	if cmd.Name == models.DiscardCommand {
+		c.DeleteLockCommand.DeleteLocksByPull(ctx.BaseRepo.FullName, ctx.Pull.Num)
+	}
+
 	result := c.runProjectCmds(projectCmds, cmd.Name)
 	if cmd.Name == models.PlanCommand && c.automergeEnabled(ctx, projectCmds) && result.HasErrors() {
 		ctx.Log.Info("deleting plans because there were errors and automerge requires all plans succeed")
-		c.deletePlans(ctx)
-		result.PlansDeleted = true
-	}
-
-	// If this was a successful discard command, delete plans anyway
-	if cmd.Name == models.DiscardCommand && !result.HasErrors() {
 		c.deletePlans(ctx)
 		result.PlansDeleted = true
 	}

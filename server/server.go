@@ -247,6 +247,14 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 	projectLocker := &events.DefaultProjectLocker{
 		Locker: lockingClient,
 	}
+	deleteLockCommand := events.DeleteLockCommand{
+		Locker:           lockingClient,
+		Logger:           logger,
+		WorkingDir:       workingDir,
+		WorkingDirLocker: workingDirLocker,
+		DB:               boltdb,
+	}
+
 	parsedURL, err := ParseAtlantisURL(userConfig.AtlantisURL)
 	if err != nil {
 		return nil, errors.Wrapf(err,
@@ -361,6 +369,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		WorkingDir:        workingDir,
 		PendingPlanFinder: pendingPlanFinder,
 		DB:                boltdb,
+		DeleteLockCommand: deleteLockCommand,
 		GlobalAutomerge:   userConfig.Automerge,
 	}
 	repoWhitelist, err := events.NewRepoWhitelistChecker(userConfig.RepoWhitelist)
@@ -377,6 +386,7 @@ func NewServer(userConfig UserConfig, config Config) (*Server, error) {
 		WorkingDir:         workingDir,
 		WorkingDirLocker:   workingDirLocker,
 		DB:                 boltdb,
+		DeleteLockCommand:  deleteLockCommand,
 	}
 	eventsController := &EventsController{
 		CommandRunner:                   commandRunner,
